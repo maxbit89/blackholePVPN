@@ -5,17 +5,13 @@ Blackhole enables you to tunnel raw Ethernet through a socket connection.
 
 Normal Ethernet Cable:
 +---------+                                   +--------+
-
 | Switch  | <---------- Cable --------------> | Switch |
-
 +---------+                                   +--------+
 
 
 Blackhole:         
 +--------+         +----------------------------+                      +----------------------------+         +--------+
-
 | Switch | <-----> | eth0 Blackhole Server eth1 | <---- Internet ----> | eth1 Blackhole Client eth0 | <-----> | Switch |
-
 +--------+         +----------------------------+                      +----------------------------+         +--------+
 
 
