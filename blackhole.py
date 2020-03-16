@@ -44,7 +44,7 @@ class SocketAcceptor(threading.Thread):
         while not self.interrupted:
             c, addr = self.socket.accept()
             print("New Client: %s:%d" % addr)
-            client = self.clientClass(c, addr, emiter)
+            client = self.clientClass(c, addr, self.emiter)
             client.start()
             self.clients.append(client)
         self.socket.close()
@@ -69,7 +69,7 @@ class ForwarderConnection(Connection):
 
 class ForwarderServer(Connection):
     def __init__(self, interface, listenerPort):
-        self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
+        self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(3))
         self.addr = (interface, 0)
         super(ForwarderServer, self).__init__(self.socket, self.addr)
         self.socket.bind(self.addr)
@@ -82,13 +82,13 @@ class ForwarderServer(Connection):
     def onRecv(self, data):
         for c in self.clientHandler.clients:
             fromHost, fromPort = self.addr
-            toHost, toPort = self.emiter.addr
+            toHost, toPort = c.addr
             print("Sending from %s:%d to %s:%d" % (fromHost, fromPort, toHost, toPort))
             c.send(data)
 
 class ForwarderClient(Connection):
     def __init__(self, interface, hostname, port):
-        self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
+        self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(3))
         self.addr = (interface, 0)
         super(ForwarderClient, self).__init__(self.socket, self.addr)
         self.socket.bind(self.addr)
