@@ -1,7 +1,7 @@
 import threading
 import socket
 
-MTU = 1500
+MTU = 4096
 
 class Connection(threading.Thread):
     def __init__(self, socket, addr):
@@ -22,6 +22,9 @@ class Connection(threading.Thread):
 
     def send(self, data):
         self.socket.send(data)
+
+    def stop(self):
+        self.interrupted = True
 
 def connect(hostname, port, clientClass):
     addr = (hostname, port)
@@ -65,6 +68,7 @@ class ForwarderConnection(Connection):
         fromHost, fromPort = self.addr
         toHost, toPort = self.emiter.addr
         print("Forwarding %s:%d -> %s:%d" % (fromHost, fromPort, toHost, toPort))
+        print("Packet: (%d)" % (len(data)))
         self.emiter.send(data)
 
 class ForwarderServer(Connection):
@@ -83,8 +87,13 @@ class ForwarderServer(Connection):
         for c in self.clientHandler.clients:
             fromHost, fromPort = self.addr
             toHost, toPort = c.addr
-            print("Sending from %s:%d to %s:%d" % (fromHost, fromPort, toHost, toPort))
+            print("Broadcast from %s:%d to %s:%d" % (fromHost, fromPort, toHost, toPort))
+            print("Packet: (%d)" %(len(data)))
             c.send(data)
+
+    def stop(self):
+        self.clientHander.stop()
+        super(ForwarderServer, self).stop()
 
 class ForwarderClient(Connection):
     def __init__(self, interface, hostname, port):
@@ -93,17 +102,53 @@ class ForwarderClient(Connection):
         super(ForwarderClient, self).__init__(self.socket, self.addr)
         self.socket.bind(self.addr)
         self.remoteAddr = (hostname, port)
-        self.client = ForwarderConnection(connect(hostname, port), self.remoteAddr, self.socket)
+        self.remoteSocket = socket.socket()
+        self.remoteSocket.connect(self.remoteAddr)
+        self.client = ForwarderConnection(self.remoteSocket, self.remoteAddr, self)
         self.client.start()
 
     def onRecv(self, data):
+        fromHost, fromPort = self.addr
+        toHost, toPort = self.remoteAddr
+        print("Broadcast from %s:%d to %s:%d" %(fromHost, fromPort, toHost, toPort))
+        print("Packet: (%d)" % (len(data)))
         self.client.send(data)
 
+    def stop(self):
+        self.client.stop()
+        super(ForwarderClient, self).stop()
+
 if __name__ == '__main__':
-    isServer = True
-    if isServer:
-        blackhole = ForwarderServer("enp0s3", 8080)
-        blackhole.start()
-        blackhole.join()
+    import argparse
+    import sys
+    import signal
+
+    parser = argparse.ArgumentParser(description="Blackhole PVPN")
+    parser.add_argument('--interface', required=True, help='interface wich will be tunneled')
+    parser.add_argument('--connect', help='connect to a blackholeServer')
+    parser.add_argument('--server', action='store_const', const=True, help='start a blackholeServer')
+    parser.add_argument('--port', type=int, default=8080, help='tcp port')
+
+    args = parser.parse_args()
+    if not(args.connect) and not(args.server):
+        print("nothing to do.")
+        sys.exit(-1)
+
+    interface = args.interface
+    port = args.port
+
+    blackhole = None
+    if(args.server):
+        print("Server tunneling if:%s hosting on port: %d" %(interface, port))
+        blackhole = ForwarderServer(interface, port)
     else:
-        blackhole = ForwarderClient("eth0", "localhost", 8080)
+        hostname=args.connect
+        print("Client tunneling if:%s connectiong to %s:%d" % (interface, hostname, port))
+        blackhole = ForwarderClient(interface, hostname, port)
+
+    blackhole.start()
+
+    def signal_handler(sig, frame):
+        print("Stopping blackhole")
+        blackhole.stop()
+    sys.exit(0)
