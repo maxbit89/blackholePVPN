@@ -64,19 +64,19 @@ class ForwarderConnection(Connection):
     def onRecv(self, data):
         fromHost, fromPort = self.addr
         toHost, toPort = self.emiter.addr
-        print("Forwarding %s:%d -> %s:%d" % (fromHost, fromPort, toHost, toPort)
+        print("Forwarding %s:%d -> %s:%d" % (fromHost, fromPort, toHost, toPort))
         self.emiter.send(data)
 
 class ForwarderServer(Connection):
-    def __init__(self, interface="eth0", listenerPort):
-        self.socket = socket.socket(AF_PACKET, SOCK_RAW)
+    def __init__(self, interface, listenerPort):
+        self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
         self.addr = (interface, 0)
-        super(ForwarderServer, self).__init__(socket, addr)
+        super(ForwarderServer, self).__init__(self.socket, self.addr)
         self.socket.bind(self.addr)
         self.listener = socket.socket()
-        self.listener.bind('', listenerPort)
+        self.listener.bind(('', listenerPort))
         self.listener.listen(5)
-        self.clientHandler = SocketAcceptor(listener, ForwarderConnection, self)
+        self.clientHandler = SocketAcceptor(self.listener, ForwarderConnection, self)
         self.clientHandler.start()
 
     def onRecv(self, data):
@@ -87,10 +87,10 @@ class ForwarderServer(Connection):
             c.send(data)
 
 class ForwarderClient(Connection):
-    def __init__(self, interface="eth0", hostname, port):
-        self.socket = socket.socket(AF_PACKET, SOCK_RAW)
+    def __init__(self, interface, hostname, port):
+        self.socket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW)
         self.addr = (interface, 0)
-        super(ForwarderClient, self).__init__(socket, addr)
+        super(ForwarderClient, self).__init__(self.socket, self.addr)
         self.socket.bind(self.addr)
         self.remoteAddr = (hostname, port)
         self.client = ForwarderConnection(connect(hostname, port), self.remoteAddr, self.socket)
@@ -102,7 +102,7 @@ class ForwarderClient(Connection):
 if __name__ == '__main__':
     isServer = True
     if isServer:
-        blackhole = ForwarderServer("eth0", 8080)
+        blackhole = ForwarderServer("enp0s3", 8080)
         blackhole.start()
         blackhole.join()
     else:
