@@ -4,19 +4,17 @@ Partial VPN
 Blackhole enables you to tunnel raw Ethernet through a socket connection.
 
 Normal Ethernet Cable:
-+---------+                                   +--------+
 
-| Switch  | <---------- Cable --------------> | Switch |
+    +---------+                                   +--------+
+    | Switch  | <---------- Cable --------------> | Switch |
+    +---------+                                   +--------+
 
-+---------+                                   +--------+
 
+Blackhole:
 
-Blackhole:         
-+--------+         +----------------------------+                      +----------------------------+         +--------+
-
-| Switch | <-----> | eth0 Blackhole Server eth1 | <---- Internet ----> | eth1 Blackhole Client eth0 | <-----> | Switch |
-
-+--------+         +----------------------------+                      +----------------------------+         +--------+
+    +--------+         +----------------------------+                      +----------------------------+         +--------+
+    | Switch | <-----> | eth0 Blackhole Server eth1 | <---- Internet ----> | eth1 Blackhole Client eth0 | <-----> | Switch |
+    +--------+         +----------------------------+                      +----------------------------+         +--------+
 
 
 
